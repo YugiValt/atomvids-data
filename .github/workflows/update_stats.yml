@@ -10,20 +10,21 @@ jobs:
       - uses: actions/checkout@v3
       - name: Update Stats
         run: |
-          # This script finds the video ID and adds 1 to the likes
           node -e "
           const fs = require('fs');
           const stats = JSON.parse(fs.readFileSync('stats.json'));
-          const videoId = '${{ github.event.client_payload.video_id }}';
-          if(stats[videoId]) {
-            stats[videoId].likes += 1;
+          const type = '${{ github.event.event_type }}';
+          const payload = ${{ toJson(github.event.client_payload) }};
+
+          if (type === 'register_user') {
+            // Save the new username and password
+            stats.users.push({ username: payload.username, password: payload.password });
+          } else if (type === 'update_likes') {
+            if(!stats.videos[payload.video_id]) stats.videos[payload.video_id] = { likes: 0 };
+            stats.videos[payload.video_id].likes += 1;
+          } else if (type === 'update_subscribers') {
+            stats.subscribers += 1;
           }
+          
           fs.writeFileSync('stats.json', JSON.stringify(stats, null, 2));
           "
-      - name: Commit and Push
-        run: |
-          git config --global user.name 'AtomVids-Bot'
-          git config --global user.email 'bot@atomvids.com'
-          git add stats.json
-          git commit -m "New Like on Video"
-          git push
