@@ -1,0 +1,29 @@
+name: Update Video Stats
+on:
+  repository_dispatch:
+    types: [update_likes]
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update Stats
+        run: |
+          # This script finds the video ID and adds 1 to the likes
+          node -e "
+          const fs = require('fs');
+          const stats = JSON.parse(fs.readFileSync('stats.json'));
+          const videoId = '${{ github.event.client_payload.video_id }}';
+          if(stats[videoId]) {
+            stats[videoId].likes += 1;
+          }
+          fs.writeFileSync('stats.json', JSON.stringify(stats, null, 2));
+          "
+      - name: Commit and Push
+        run: |
+          git config --global user.name 'AtomVids-Bot'
+          git config --global user.email 'bot@atomvids.com'
+          git add stats.json
+          git commit -m "New Like on Video"
+          git push
