@@ -1,0 +1,28 @@
+name: Update AtomVids Data
+on:
+  repository_dispatch:
+    types: [update_likes, new_user]
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Update JSON
+        run: |
+          # This script handles the logic for likes and users
+          if [ "${{ github.event.action }}" == "update_likes" ]; then
+            VIDEO_ID="${{ github.event.client_payload.video_id }}"
+            # Use jq to increment the likes for that specific video ID
+            jq --arg id "$VIDEO_ID" '.[$id].likes += 1' stats.json > tmp.json && mv tmp.json stats.json
+          fi
+
+      - name: Commit and Push
+        run: |
+          git config --global user.name "AtomVids-Bot"
+          git config --global user.email "bot@atomvids.com"
+          git add stats.json
+          git commit -m "Update from Website"
+          git push
