@@ -1,7 +1,5 @@
 {
   "subscribers": 0,
-  "video_1": {
-    "title": "My First Video",
-    "likes": 0
-  }
+  "users": [],
+  "videos": {}
 }
