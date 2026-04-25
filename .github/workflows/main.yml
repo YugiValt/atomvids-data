@@ -1,7 +1,7 @@
 name: Update AtomVids Data
 on:
   repository_dispatch:
-    types: [update_likes, new_user]
+    types: [update_likes, update_subs, new_user]
 
 jobs:
   update-data:
@@ -10,16 +10,32 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v3
 
-      - name: Update JSON
+      - name: Update JSON logic
         run: |
-          VIDEO_ID="${{ github.event.client_payload.video_id }}"
-          # This command creates the video ID if it's missing and adds 1 like
-          jq --arg id "$VIDEO_ID" '.[$id].likes = (.[$id].likes // 0) + 1' stats.json > tmp.json && mv tmp.json stats.json
+          ACTION="${{ github.event.action }}"
+          
+          # 1. Handle Likes
+          if [ "$ACTION" == "update_likes" ]; then
+            VIDEO_ID="${{ github.event.client_payload.video_id }}"
+            jq --arg id "$VIDEO_ID" '.[$id].likes = (.[$id].likes // 0) + 1' stats.json > tmp.json && mv tmp.json stats.json
+          fi
 
-      - name: Commit and Push
+          # 2. Handle Subscriptions
+          if [ "$ACTION" == "update_subs" ]; then
+            jq '.global.subs = (.global.subs // 0) + 1' stats.json > tmp.json && mv tmp.json stats.json
+          fi
+
+          # 3. Handle New User Signup
+          if [ "$ACTION" == "new_user" ]; then
+            USER="${{ github.event.client_payload.username }}"
+            PASS="${{ github.event.client_payload.password }}"
+            jq --arg u "$USER" --arg p "$PASS" '.users[$u] = $p' stats.json > tmp.json && mv tmp.json stats.json
+          fi
+
+      - name: Commit and Push Changes
         run: |
           git config --global user.name "AtomVids-Bot"
           git config --global user.email "bot@atomvids.com"
           git add stats.json
-          git commit -m "Update Likes for $VIDEO_ID"
+          git commit -m "AtomVids Update: ${{ github.event.action }}" || exit 0
           git push
