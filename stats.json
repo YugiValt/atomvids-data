@@ -1,5 +1,9 @@
 {
-  "global": {"subs": 0},
-  "users": {},
+  "global": {
+    "subs": 0
+  },
+  "users": {
+    "YugiValt": "minijesus"
+  },
   "likes": {}
 }
